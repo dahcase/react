@@ -580,58 +580,26 @@ create_modis_tiles_region<-function(modis_grid,tiles){
 }
 
 get_modis_tiles_list <-function(modis_grid,reg_outline,CRS_interp){
-  #Usage:This function finds the matching modis tiles given a vector polygon in shapefile format.
-  #Inputs:
-  #modis_grid: shapefiles of modis grid.
-  #reg_outline: file name or sf object of processing region with extent
-  #CRS_interp: projection system
-  #Outputs:
-  #list of modis tiles in the hxxvxx format eg h09v06
-  
-  ## SCRIPT BEGIN ##
-  
-  #class(reg_outline) %in% c("SpatialPolygonsDataFrame","sf")
   if((class(reg_outline)[1]!="sf")){
-    #filename<-sub(extension(basename(reg_outline)),"",basename(reg_outline))       #Removing path and the extension from file name.
-    #reg_outline <- readOGR(dsn=dirname(reg_outline), filename)
     reg_outline <- st_read(reg_outline)
   }
   #filename<-sub(".shp","",basename(infile_modis_grid))       #Removing path and the extension from file name.
   #modis_grid<-readOGR(dsn=dirname(infile_modis_grid), filename)     #Reading shape file using rgdal library
   modis_grid<-st_read(infile_modis_grid)    #Reading shape file using rgdal library
-  
-  #proj4string(reg_outline) <- CRS_interp
-  
-  #modis_WGS84 <- spTransform(modis_grid,CRS_locs_WGS84) #get cooddinates of center of region in lat, lon
+
   reg_outline_sin <- st_transform(reg_outline,st_crs(modis_grid)$proj4string)
-  #reg_outline_sin <- spTransform(reg_outline,CRS(proj4string(modis_grid))) #get cooddinates of center of region in lat, lon
-  #reg_outline <- as(reg_outline_sin,"Spatial")
-  #reg_outline_dissolved <- gUnionCascaded(reg_outline_sin)  #dissolve polygons
+
   
   l_poly <- st_intersects(reg_outline_sin,modis_grid) #intersected poly
   modis_grid_selected <- modis_grid[unlist(l_poly),]
-  #franconia %>%  
-  #  split(.$district) %>% 
-  # lapply(st_union) %>% 
-  # do.call(c, .) %>% # bind the list element to a single sfc
-    #st_cast() %>% # mapview doesn't like GEOMETRY -> cast to MULTIPOLYGON
-    #mapview()
+
   
-  plot(modis_grid_selected$geometry)
-  plot(reg_outline_sin,col="red",add=T)
-  
-  #tiles<-gIntersection(reg_outline_dissolved, modis_grid, byid=FALSE, id=NULL)
-  
-  #l_poly <- over(reg_outline_dissolved, modis_grid)
   df_tmp <- as.data.frame(modis_grid_selected)
-  
-  #df_tmp <- as.data.frame(modis_grid[555:60,])
 
   #now format...
   #format()
   tiles_modis <- paste(sprintf("h%02d", df_tmp$h),sprintf("v%02d", df_tmp$v),sep="")
   tiles_modis <- paste(tiles_modis,collapse=",")
-  #h09v06
   
   return(tiles_modis)
 }
@@ -747,32 +715,6 @@ modis_product_download <- function(MODIS_product,version,start_date,end_date,lis
       #username and password are stored in an rdata file
       httr::GET(file_item, authenticate(username, pass), write_disk(file.path(out_dir_tiles[j],basename(file_item)), overwrite = T))
       
-      #download.file(file_item,destfile="test.hdf")
-      ## need a .netrc file,
-      ##set the file to at least Read (400) or Read/Write (600)
-      ##chmod 0600 ~/.netrc
-      #curl -n -L -c cookiefile -b cookiefile http://e4ftl01.cr.usgs.gov/MOLT/MOD09A1.006/2001.01.09/MOD09A1.A2001009.h13v01.006.2015140120258.hdf.xml 
-      #system("curl -n -L -c cookiefile -b cookiefile http://e4ftl01.cr.usgs.gov/MOLT/MOD09A1.006/2001.01.09/MOD09A1.A2001009.h13v01.006.2015140120258.hdf.xml") 
-      
-      #system("curl -n -L -c cookiefile -b cookiefile https://e4ftl01.cr.usgs.gov/MOLT/MOD09A1.006/2001.01.09/MOD09A1.A2001009.h13v01.006.2015140120258.hdf --output MOD09A1.A2001009.h13v01.006.2015140120258.hdf")
-      # cmd_curl_str <- paste("curl -n -L -c cookiefile -b cookiefile",
-      #                       file_item,
-      #                       "--output",
-      #                       paste0("'",file.path(out_dir_tiles[j],basename(file_item)),"'")
-      #                       ) 
-      # system(cmd_curl_str)
-      #system("curl -n -L -c cookiefile -b cookiefile https://e4ftl01.cr.usgs.gov/MOLT/MOD11A1.006/2001.01.01/MOD11A1.A2001001.h08v05.006.2015111170727.hdf")
-      #myopts <- RCurl::curlOptions(netrc=TRUE, netrc.file=path.expand("~/.netrc"), 
-      #                             cookiefile=path.expand("~/.urs_cookies"), 
-      #                             followlocation=TRUE) 
-      
-      #your_url <- file_item
-      #getBinaryURL(your_url, .opts=myopts) 
-      
-      #where the .netrc file should look like this: 
-        
-      #machine urs.earthdata.nasa.gov login your_login password your_pass 
-      #machine e4ftl01.cr.usgs.gov login your_login password your_pass
     }
   }
   

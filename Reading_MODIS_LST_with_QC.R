@@ -49,7 +49,6 @@ library(spdep)                               # Spatial pacakge with methods and 
 library(rgdal)                               # GDAL wrapper for R, spatial utilities
 library(gstat)                               # Kriging and co-kriging by Pebesma et al.
 library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
-library(raster)                              # Hijmans et al. package for raster processing
 library(spgwr)
 library(reshape)
 library(sf)
@@ -66,7 +65,7 @@ create_dir_fun <- function(outDir,out_suffix=NULL){
   }
   #create if does not exists
   if(!file.exists(outDir)){
-    dir.create(outDir)
+    dir.create(outDir, recursive = T)
   }
   return(outDir)
 }
@@ -79,57 +78,40 @@ load_obj <- function(f){
 }
 
 function_analyses_paper <-"MODIS_and_raster_processing_functions.R"
-script_path <- "C:/Users/Me/Documents/code/space_time_lucc"  #path to script functions
+script_path <- "~/Documents/code/react/"  #path to script functions
 source(file.path(script_path,function_analyses_paper)) #source all functions used in this script.
 
 ################################
 ###### Parameters and arguments
 
-#in_dir <- "/home/bparmentier/Google Drive/Space_beats_time/Data/data_AZ_jacob" #param1
-in_dir <- "C:/Users/Me/Documents/belspo/test"
-#data_fname <- file.path("~/Data/Space_beats_time/stu/Katrina/run2/csv","Katrina2.csv")
-out_dir <- "C:/Users/Me/Documents/belspo/test" #param2
+in_dir <- "/media/dan/react_data/pre_proc"
+out_dir <- "/media/dan/react_data/post_proc" #param2
 
 proj_modis_str <-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs" 
-#CRS_reg <-"+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84
+CRS_reg <-"+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84
 CRS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 
-
 proj_str<- CRS_WGS84 #check if in use somewhere?
-#http://spatialreference.org/ref/epsg/nad83-texas-state-mapping-system/proj4/
-CRS_reg <- "+proj=lcc +lat_1=27.41666666666667 +lat_2=34.91666666666666 +lat_0=31.16666666666667 +lon_0=-100 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +datum=NAD83 +units=m +no_defs" 
+
 file_format <- ".rst" #raster format used #param4
 NA_value <- -9999 #param5
 NA_flag_val <- NA_value
-out_suffix <-"houston_10222017" #output suffix for the files that are masked for quality and for ...param6
-#out_suffix <- "arizona_10182017"
-create_out_dir_param=FALSE #param7
+out_suffix <-"af_lst" #output suffix for the files that are masked for quality and for ...param6
+create_out_dir_param=T #param7
 
-#in_dir <- "/data/project/layers/commons/modis/MOD11A1_tiles" #ATLAS SERVER 
-#out_dir <- "/data/project/layers/commons/Oregon_interpolation/MODIS_processing_07072014/" #ATLAS SERVER 
+infile_reg_outline<- "/home/dan/Documents/react_data/Cities_React/Boundaries.shp" #param9
 
-#infile_reg_outline=""  #input region outline defined by polygon: none Katrina
-infile_reg_outline=NULL #param9
-infile_reg_outline<- "C:/Users/Me/Documents/belspo/test/Fairfax_County_Border.shp"
-#This is the shape file of outline of the study area                                                      #It is an input/output of the covariate script
-#infile_reg_outline <- "/data/project/layers/commons/Oregon_interpolation/MODIS_processing_07072014/region_outlines_ref_files/OR83M_state_outline.shp" #input region outline defined by polygon: Oregon
-
-#local raster name defining resolution, exent: oregon
 
 #ref_rast_name <- "~/Data/Space_beats_time/Case2_data_NDVI/ref_rast_New_Orleans.rst"
 ref_rast_name <- NULL #if null use the first image to define projection area
-#ref_rast_name <- "/home/bparmentier/Google Drive/Space_beats_time/Data/data_Rita_Houston/rita_outline_reg/Study_Area_Rita_New.shp"
-#ref_rast_name <- "/home/bparmentier/Google Drive/Space_beats_time/Data/data_AZ_jacob/reference_region_study_area_AZ.rst"
-#ref_rast_name <- "/home/bparmentier/Google Drive/Space_beats_time/Data/data_AZ_jacob/Arizona_Outline_State_Plane/Arizona_Outlline_State_Plane.shp"
-#ref_rast_name<-"/home/parmentier/Data/IPLANT_project/MODIS_processing_0970720134/region_outlines_ref_files/mean_day244_rescaled.rst" #local raster name defining resolution, exent: oregon
-infile_modis_grid <- "C:/Users/Me/Documents/belspo/test/modis_sinusoidal_grid_world.shp" #param11
+infile_modis_grid <- "/home/dan/Documents/react_data/modis_grid/modis_sinusoidal_grid_world.shp" #param11
 
 ## Other specific parameters
 
-MODIS_product <- "MOD13A2.006" #NDVI/EVI 1km product (monthly) #param12
+MODIS_product <- "MOD11A2.006" #"MOD13A2.006" #NDVI/EVI 1km product (monthly) #param12
 #MODIS_product <- "MOD11A1.006"
 #MODIS_product <- "MOD11A2.006" #should be product name
-start_date <- "2001.01.01"  #param13
-end_date <- "2002.12.31"  #param14
+start_date <- "2004.01.01"  #param13
+end_date <- "2016.12.31"  #param14
 #end_date <- "2001.01.10"
 
 #/home/bparmentier/Google Drive/Space_beats_time/Data/modis_reference_grid
@@ -143,14 +125,14 @@ product_version <- 6 #param16
 #temporal_granularity <- "Daily" #deal with options( 16 day, 8 day and monthly) #param17
 #temporal_granularity <- "16 Day" #deal with options( 16 day, 8 day and monthly), unused at this stage...
 
-#scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
-scaling_factors <- c(0.0001,0) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for NDVI 
+scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
+#scaling_factors <- c(0.0001,0) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for NDVI 
 #scaling_factors <- NULL #set up as slope (a) and intercept (b), if NULL, no scaling done #param18 
 
-product_type = c("NDVI") #can be LST, ALBEDO etc.#this can be set from the modis product!! #param 19
-#product_type = c("LST") #can be LST, ALBEDO etc.
+#product_type = c("NDVI") #can be LST, ALBEDO etc.#this can be set from the modis product!! #param 19
+product_type = c("LST") #can be LST, ALBEDO etc.
 
-num_cores <- 1 #param 20
+num_cores <- 7 #param 20
 
 #Parameters/arguments not in use yet...
 #num_cores <- 10 #number of cores used in parallel processing...
@@ -165,11 +147,11 @@ agg_param <- c(FALSE,NULL,"mean") #False means there is no aggregation!!! #param
 save_textfile <- TRUE
 
 
-#rdata file with user and pass for earthdata
-userpass = 'C:/Users/Me/Documents/belspo/test/lpdaac.Rdata'
-load(userpass)
 
-steps_to_run <- list(download=F,       #1rst step
+up = '/home/dan/Documents/react_data/lpdaac.Rdata'
+load(up)
+
+steps_to_run <- list(download=T,       #1rst step
                      import=TRUE,          #2nd step
                      apply_QC_flag=TRUE,   #3rd step
                      mosaic=TRUE,          #4th step
@@ -218,23 +200,25 @@ if(is.null(list_tiles_modis)){
   
 }
 list_tiles_modis <- unlist(strsplit(list_tiles_modis,","))  # transform string into separate element in char vector
+list_tiles_modis = list_tiles_modis[2:length(list_tiles_modis)]
 
 #debug(modis_product_download)
-if(steps_to_run$download==TRUE){
-  #debug(modis_product_download)
-  download_modis_obj <- modis_product_download(MODIS_product,product_version,start_date,end_date,list_tiles_modis,file_format_download,out_dir,temporal_granularity)
-  out_dir_tiles <- (file.path(in_dir,list_tiles_modis))
-  list_files_by_tiles <-download_modis_obj$list_files_by_tiles #Use mapply to pass multiple arguments
-  colnames(list_files_by_tiles) <- list_tiles_modis #note that the output of mapply is a matrix
-}else{
-  
-  ### Add download_dir here
-  out_dir_tiles <- (file.path(in_dir,list_tiles_modis))
-  #list_files_by_tiles <- mapply(1:length(out_dir_tiles),FUN=list.files,MoreArgs=list(pattern="*.hdf$",path=out_dir_tiles,full.names=T),SIMPLIFY=T) #Use mapply to pass multiple arguments 
-  list_files_by_tiles <-mapply(1:length(out_dir_tiles),FUN=function(i,x){list.files(path=x[[i]],pattern="*.hdf$",full.names=T)},MoreArgs=(list(x=out_dir_tiles)),SIMPLIFY=T) #Use mapply to pass multiple arguments
-  colnames(list_files_by_tiles) <- list_tiles_modis #note that the output of mapply is a matrix
-}
-
+step_1 = system.time({
+  if(steps_to_run$download==TRUE){
+    #debug(modis_product_download)
+    download_modis_obj <- modis_product_download(MODIS_product,product_version,start_date,end_date,list_tiles_modis,file_format_download,out_dir,temporal_granularity)
+    out_dir_tiles <- (file.path(in_dir,list_tiles_modis))
+    list_files_by_tiles <-download_modis_obj$list_files_by_tiles #Use mapply to pass multiple arguments
+    colnames(list_files_by_tiles) <- list_tiles_modis #note that the output of mapply is a matrix
+  }else{
+    
+    ### Add download_dir here
+    out_dir_tiles <- (file.path(in_dir,list_tiles_modis))
+    #list_files_by_tiles <- mapply(1:length(out_dir_tiles),FUN=list.files,MoreArgs=list(pattern="*.hdf$",path=out_dir_tiles,full.names=T),SIMPLIFY=T) #Use mapply to pass multiple arguments 
+    list_files_by_tiles <-mapply(1:length(out_dir_tiles),FUN=function(i,x){list.files(path=x[[i]],pattern="*.hdf$",full.names=T)},MoreArgs=(list(x=out_dir_tiles)),SIMPLIFY=T) #Use mapply to pass multiple arguments
+    colnames(list_files_by_tiles) <- list_tiles_modis #note that the output of mapply is a matrix
+  }
+})
 ####################################
 ##### STEP 2: IMPORT MODIS LAYERS ###
 
@@ -267,56 +251,57 @@ qc_modis_name <- gsub(" ","_",qc_modis_name)
 
 ##loop over tiles:
 #Took 10 minutes for 506 files and one tile
-if(steps_to_run$import==TRUE){
-  list_imported_files <- vector("list",length=length(list_tiles_modis))
-  for(j in 1:length(list_tiles_modis)){
-    #infile_var <- download_modis_obj$list_files_by_tiles[,j] 
-    infile_var <-list_files_by_tiles[,j] #note can be any variable even thought LST presented  here
-    #infile_var <- list_files_by_tiles[[j]]
-    out_dir_tmp <- paste0("import_",list_tiles_modis[j])
-    #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
-    out_dir_s <- file.path(out_dir,out_dir_tmp)
-    
-    out_suffix_s <- var_modis_name
-    list_param_import_modis <- list(i=1,hdf_file=infile_var,subdataset=modis_layer_str1,NA_flag_val=NA_flag_val,out_dir=out_dir_s,
-                                    out_suffix=out_suffix_s,file_format=file_format_import,scaling_factors=scaling_factors)
-    #undebug(import_list_modis_layers_fun)
-    #r_var_s_filename <- import_list_modis_layers_fun(1,list_param_import_modis)    
-    #r_var_s <- raster(r_var_s_filename)
-    #r_var_s <- mclapply(1:12,
-    #                    FUN=import_list_modis_layers_fun,
-    #                    list_param=list_param_import_modis,
-    #                    mc.preschedule=FALSE,
-    #                    mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-
-    list_r_var_s <- mclapply(1:length(infile_var),
+step_2 = system.time({
+  if(steps_to_run$import==TRUE){
+    list_imported_files <- vector("list",length=length(list_tiles_modis))
+    for(j in 1:length(list_tiles_modis)){
+      #infile_var <- download_modis_obj$list_files_by_tiles[,j] 
+      infile_var <-list_files_by_tiles[,j] #note can be any variable even thought LST presented  here
+      #infile_var <- list_files_by_tiles[[j]]
+      out_dir_tmp <- paste0("import_",list_tiles_modis[j])
+      #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
+      out_dir_s <- file.path(out_dir,out_dir_tmp)
+      
+      out_suffix_s <- var_modis_name
+      list_param_import_modis <- list(i=1,hdf_file=infile_var,subdataset=modis_layer_str1,NA_flag_val=NA_flag_val,out_dir=out_dir_s,
+                                      out_suffix=out_suffix_s,file_format=file_format_import,scaling_factors=scaling_factors)
+      #undebug(import_list_modis_layers_fun)
+      #r_var_s_filename <- import_list_modis_layers_fun(1,list_param_import_modis)    
+      #r_var_s <- raster(r_var_s_filename)
+      #r_var_s <- mclapply(1:12,
+      #                    FUN=import_list_modis_layers_fun,
+      #                    list_param=list_param_import_modis,
+      #                    mc.preschedule=FALSE,
+      #                    mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+  
+      list_r_var_s <- mclapply(1:length(infile_var),
+                          FUN=import_list_modis_layers_fun,
+                          list_param=list_param_import_modis,
+                          mc.preschedule=FALSE,
+                          mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+      
+      ##### Now do the qc flags
+      out_suffix_s <- qc_modis_name
+      list_param_import_modis <- list(i=1,
+                                      hdf_file=infile_var,subdataset=modis_layer_str2,NA_flag_val=NA_flag_val,out_dir=out_dir_s,
+                                      out_suffix=out_suffix_s,file_format=file_format_import,scaling_factors=NULL)
+      #r1<-import_list_modis_layers_fun(1,list_param_import_modis)
+      #r_qc_s <-mclapply(1:12,
+      #                  FUN=import_list_modis_layers_fun,
+      #                  list_param=list_param_import_modis,
+      #                 mc.preschedule=FALSE,
+      #                  mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+      
+      list_r_qc_s <-mclapply(1:length(infile_var),
                         FUN=import_list_modis_layers_fun,
                         list_param=list_param_import_modis,
                         mc.preschedule=FALSE,
                         mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    
-    ##### Now do the qc flags
-    out_suffix_s <- qc_modis_name
-    list_param_import_modis <- list(i=1,
-                                    hdf_file=infile_var,subdataset=modis_layer_str2,NA_flag_val=NA_flag_val,out_dir=out_dir_s,
-                                    out_suffix=out_suffix_s,file_format=file_format_import,scaling_factors=NULL)
-    #r1<-import_list_modis_layers_fun(1,list_param_import_modis)
-    #r_qc_s <-mclapply(1:12,
-    #                  FUN=import_list_modis_layers_fun,
-    #                  list_param=list_param_import_modis,
-    #                 mc.preschedule=FALSE,
-    #                  mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    
-    list_r_qc_s <-mclapply(1:length(infile_var),
-                      FUN=import_list_modis_layers_fun,
-                      list_param=list_param_import_modis,
-                      mc.preschedule=FALSE,
-                      mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    l_files <- list(var=list_r_var_s,qc=list_r_qc_s)
-    list_imported_files[[j]] <- l_files
+      l_files <- list(var=list_r_var_s,qc=list_r_qc_s)
+      list_imported_files[[j]] <- l_files
+    }
   }
-}
-
+})
 
 if(steps_to_run$import==FALSE){
   ## Need to deal with multiple tiles
@@ -425,65 +410,67 @@ list_r_qc <- vector("list",length(list_tiles_modis)) #to contain qc mask image
 list_r_stack <- vector("list",length(list_tiles_modis)) #to contain results
 
 #26 minutes for 230 files to apply NDVI mask
-if(steps_to_run$apply_QC_flag==TRUE){
-  for(j in 1:length(list_tiles_modis)){
-    #list all files first
-    #out_dir_s <- file.path(dirname(out_dir),list_tiles_modis)[j]
-    #
-    #out_dir_s <- file.path(out_dir,list_tiles_modis)[j]
-    
-    #out_dir_tmp <- paste0("mask_qc_",list_tiles_modis[j])
-    out_dir_tmp <- paste0("import_",list_tiles_modis[j])
-    #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
-    out_dir_s <- file.path(out_dir,out_dir_tmp) #input dir is import out dir
-    
-    out_suffix_s <- paste(var_modis_name,sep="") #for MODIS product (var)
-    file_format_s <-file_format
-    #undebug(create_raster_list_from_file_pat)
-    list_r_lst[[j]] <- create_raster_list_from_file_pat(out_suffix_s,file_pat="",
-                                                        in_dir=out_dir_s,
-                                                        out_prefix="",
-                                                        file_format=file_format_s)
-    
-    #out_dir_s <- file.path(dirname(out_dir),list_tiles_modis)[j]
-    #out_dir_s <- file.path(out_dir,list_tiles_modis)[j] #same as above
-    #debug(create_raster_list_from_file_pat)
-    out_suffix_s <- paste(qc_modis_name,sep="") #for qc flags
-    list_r_qc[[j]] <- create_raster_list_from_file_pat(out_suffix_s,
-                                                       file_pat="",
-                                                       in_dir=out_dir_s,
-                                                       out_prefix="",
-                                                       file_format=file_format_s)
-    
-    ##### Now prepare the input for screening using QC flag values
-    
-    ##Set output dir
-    out_dir_tmp <- paste0("mask_qc_",list_tiles_modis[j])
-    #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
-    out_dir_s <- file.path(out_dir,out_dir_tmp) #input dir is import out dir
-    
-    list_param_screen_qc <- list(qc_valid,
-                                 list_r_qc[[j]], 
-                                 list_r_lst[[j]],
-                                 rast_mask=TRUE,
-                                 NA_flag_val,out_dir_s,out_suffix) 
-    names(list_param_screen_qc) <- c("qc_valid",
-                                     "rast_qc", 
-                                     "rast_var","rast_mask",
-                                     "NA_flag_val","out_dir","out_suffix") 
-    #undebug(screen_for_qc_valid_fun)
-    #r_stack[[1]] <- screen_for_qc_valid_fun(1,list_param=list_param_screen_qc)
-    #r_stack[[j]] <- lapply(1:length(list_r_qc[[j]]),FUN=screen_for_qc_valid_fun,list_param=list_param_screen_qc)
-    #r_test <-mclapply(1:11,FUN=screen_for_qc_valid_fun,list_param=list_param_screen_qc,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
-    
-    list_r_stack[[j]] <-mclapply(1:length(list_r_qc[[j]]),
-                            FUN=screen_for_qc_valid_fun,
-                            list_param=list_param_screen_qc,
-                            mc.preschedule=FALSE,
-                            mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    
+step_3.1 =system.time({
+  if(steps_to_run$apply_QC_flag==TRUE){
+    for(j in 1:length(list_tiles_modis)){
+      #list all files first
+      #out_dir_s <- file.path(dirname(out_dir),list_tiles_modis)[j]
+      #
+      #out_dir_s <- file.path(out_dir,list_tiles_modis)[j]
+      
+      #out_dir_tmp <- paste0("mask_qc_",list_tiles_modis[j])
+      out_dir_tmp <- paste0("import_",list_tiles_modis[j])
+      #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
+      out_dir_s <- file.path(out_dir,out_dir_tmp) #input dir is import out dir
+      
+      out_suffix_s <- paste(var_modis_name,sep="") #for MODIS product (var)
+      file_format_s <-file_format
+      #undebug(create_raster_list_from_file_pat)
+      list_r_lst[[j]] <- create_raster_list_from_file_pat(out_suffix_s,file_pat="",
+                                                          in_dir=out_dir_s,
+                                                          out_prefix="",
+                                                          file_format=file_format_s)
+      
+      #out_dir_s <- file.path(dirname(out_dir),list_tiles_modis)[j]
+      #out_dir_s <- file.path(out_dir,list_tiles_modis)[j] #same as above
+      #debug(create_raster_list_from_file_pat)
+      out_suffix_s <- paste(qc_modis_name,sep="") #for qc flags
+      list_r_qc[[j]] <- create_raster_list_from_file_pat(out_suffix_s,
+                                                         file_pat="",
+                                                         in_dir=out_dir_s,
+                                                         out_prefix="",
+                                                         file_format=file_format_s)
+      
+      ##### Now prepare the input for screening using QC flag values
+      
+      ##Set output dir
+      out_dir_tmp <- paste0("mask_qc_",list_tiles_modis[j])
+      #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
+      out_dir_s <- file.path(out_dir,out_dir_tmp) #input dir is import out dir
+      
+      list_param_screen_qc <- list(qc_valid,
+                                   list_r_qc[[j]], 
+                                   list_r_lst[[j]],
+                                   rast_mask=TRUE,
+                                   NA_flag_val,out_dir_s,out_suffix) 
+      names(list_param_screen_qc) <- c("qc_valid",
+                                       "rast_qc", 
+                                       "rast_var","rast_mask",
+                                       "NA_flag_val","out_dir","out_suffix") 
+      #undebug(screen_for_qc_valid_fun)
+      #r_stack[[1]] <- screen_for_qc_valid_fun(1,list_param=list_param_screen_qc)
+      #r_stack[[j]] <- lapply(1:length(list_r_qc[[j]]),FUN=screen_for_qc_valid_fun,list_param=list_param_screen_qc)
+      #r_test <-mclapply(1:11,FUN=screen_for_qc_valid_fun,list_param=list_param_screen_qc,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
+      
+      list_r_stack[[j]] <-mclapply(1:length(list_r_qc[[j]]),
+                              FUN=screen_for_qc_valid_fun,
+                              list_param=list_param_screen_qc,
+                              mc.preschedule=FALSE,
+                              mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+      
+    }
   }
-}
+})
 #33 minutes for 4 tiles of NDVI 230 images
 #26 minutes for 230 for NDVI
 #19minutes for 505 files
@@ -597,7 +584,7 @@ if(steps_to_run$mosaic==TRUE){
   #out_dir_s <- file.path(out_dir,list_tiles_modis[j])
   out_dir_s <- file.path(out_dir,out_dir_tmp)
   if(!file.exists(out_dir_s)){
-    dir.create(out_dir_s)
+    dir.create(out_dir_s, recursive = T)
   }
   
   out_dir_mosaic <- out_dir_s
