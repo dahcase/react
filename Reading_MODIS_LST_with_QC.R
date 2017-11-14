@@ -53,6 +53,7 @@ library(spgwr)
 library(reshape)
 library(sf)
 library('httr')
+library('rvest')
 
 #################################
 ### Functions used in the script:
@@ -80,7 +81,7 @@ load_obj <- function(f){
 function_analyses_paper <-"MODIS_and_raster_processing_functions.R"
 script_path <- "~/Documents/code/react/"  #path to script functions
 source(file.path(script_path,function_analyses_paper)) #source all functions used in this script.
-
+source(file.path(script_path, 'download_modis_fun.R'))
 ################################
 ###### Parameters and arguments
 
@@ -195,21 +196,26 @@ if(is.null(list_tiles_modis)){
   #
   #debug(get_modis_tiles_list)
   list_tiles_modis <- get_modis_tiles_list(modis_grid,
-                                           reg_outline=infile_reg_outline,
-                                           CRS_reg)
+                                           reg_outline=infile_reg_outline)
   
 }
 list_tiles_modis <- unlist(strsplit(list_tiles_modis,","))  # transform string into separate element in char vector
-list_tiles_modis = list_tiles_modis[2:length(list_tiles_modis)]
+#list_tiles_modis = list_tiles_modis[2:length(list_tiles_modis)]
 
 #debug(modis_product_download)
 step_1 = system.time({
   if(steps_to_run$download==TRUE){
-    #debug(modis_product_download)
-    download_modis_obj <- modis_product_download(MODIS_product,product_version,start_date,end_date,list_tiles_modis,file_format_download,out_dir,temporal_granularity)
-    out_dir_tiles <- (file.path(in_dir,list_tiles_modis))
-    list_files_by_tiles <-download_modis_obj$list_files_by_tiles #Use mapply to pass multiple arguments
-    colnames(list_files_by_tiles) <- list_tiles_modis #note that the output of mapply is a matrix
+    
+    #get URLS
+    mod_links = get_modis_links(modis_product = MODIS_product, tile_list = list_tiles_modis, start_date = start_date, end_date = end_date, 
+                                extensions = c('.hdf','.xml'), read_local = T, verbose = F)
+    
+    gc()
+    
+    #download files
+    download_modis(urls = mod_links, output_folder = out_dir, redownload = F)
+    
+    
   }else{
     
     ### Add download_dir here
