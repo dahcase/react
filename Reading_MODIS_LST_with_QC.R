@@ -96,7 +96,7 @@ proj_str<- CRS_WGS84 #check if in use somewhere?
 file_format <- ".rst" #raster format used #param4
 NA_value <- -9999 #param5
 NA_flag_val <- NA_value
-out_suffix <-"af_lst" #output suffix for the files that are masked for quality and for ...param6
+out_suffix <-modis_base #output suffix for the files that are masked for quality and for ...param6
 create_out_dir_param=T #param7
 
 infile_reg_outline<- "/home/dan/Documents/react_data/Cities_React/Boundaries.shp" #param9
@@ -107,8 +107,7 @@ ref_rast_name <- NULL #if null use the first image to define projection area
 infile_modis_grid <- "/home/dan/Documents/react_data/modis_grid/modis_sinusoidal_grid_world.shp" #param11
 
 ## Other specific parameters
-
-MODIS_product <- "MOD11A2.006" #"MOD13A2.006" #NDVI/EVI 1km product (monthly) #param12
+ #"MOD13A2.006" #NDVI/EVI 1km product (monthly) #param12
 #MODIS_product <- "MOD11A1.006"
 #MODIS_product <- "MOD11A2.006" #should be product name
 start_date <- "2004.01.01"  #param13
@@ -131,7 +130,7 @@ scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL,
 #scaling_factors <- NULL #set up as slope (a) and intercept (b), if NULL, no scaling done #param18 
 
 #product_type = c("NDVI") #can be LST, ALBEDO etc.#this can be set from the modis product!! #param 19
-product_type = c("LST") #can be LST, ALBEDO etc.
+product_type = c("NDVI") #can be LST, ALBEDO etc.
 
 num_cores <- 7 #param 20
 
@@ -193,16 +192,12 @@ if(create_out_dir_param==TRUE){
 #list_tiles_modis <- get_modis_tiles_list(modis_grid,reg_outline,CRS_reg)
 
 if(is.null(list_tiles_modis)){
-  #
-  #debug(get_modis_tiles_list)
   list_tiles_modis <- get_modis_tiles_list(modis_grid,
                                            reg_outline=infile_reg_outline)
   
 }
-list_tiles_modis <- unlist(strsplit(list_tiles_modis,","))  # transform string into separate element in char vector
-#list_tiles_modis = list_tiles_modis[2:length(list_tiles_modis)]
+list_tiles_modis <- unique(unlist(strsplit(list_tiles_modis,",")))  # transform string into separate element in char vector
 
-#debug(modis_product_download)
 step_1 = system.time({
   if(steps_to_run$download==TRUE){
     
