@@ -82,7 +82,7 @@ process_image = function(hdf_file, val_layer_id, qa_layer_id = NULL, qa_mask = N
   
   #if scaling is requestion
   if(!is.null(scaling_factors)){
-    ras = scaling_factors[1] + scaling_factors[2] * ras
+    ras = scaling_factors[2] + scaling_factors[1] * ras
   }
   
   #reproject if requested
