@@ -9,7 +9,7 @@
 #' @param mask logical. Should the brick be masked to the outlines
 #' @param cores numeric. Number of cores to be used
 #' @return raster brick
-build_city_brick = function(modis_grid, city_shape, start_date, end_date, md_start, md_end, bydays = '8 day', base_folder, modis_product, mask, project = NULL, cores = 1){
+build_city_brick = function(modis_grid, city_shape, start_date, end_date, md_start, md_end, bydays = '8 day', base_folder, modis_product, variable, mask, project = NULL, cores = 1){
   
   #find which modis titles need extraction
   cs = st_transform(city_shape, st_crs(modis_grid))
@@ -33,6 +33,7 @@ build_city_brick = function(modis_grid, city_shape, start_date, end_date, md_sta
   uniq_dates = unique(target_slices$modis_dt)
   city_brick = parallel::mclapply(uniq_dates, function(y) load_raster(df = target_slices[target_slices$modis_dt==y,],
                                                             modis_product = modis_product,
+                                                            variable = variable,
                                                             base_folder = base_folder,
                                                             city_shape = city_shape,
                                                             mask = mask), mc.cores = cores)
@@ -52,12 +53,12 @@ build_city_brick = function(modis_grid, city_shape, start_date, end_date, md_sta
   
 }
 
-load_raster = function(df, modis_product, base_folder, city_shape, mask){
+load_raster = function(df, modis_product, variable, base_folder, city_shape, mask){
   
   tile = paste0('h',sprintf("%02d", df$h),'v',sprintf("%02d", df$v))
   #patt = paste0('^(?=.*\\b',modis_product,'\\b)(?=.*\\b',tile, '\\b).*$')
   
-  patt = paste0(modis_product,'\\.A', df$modis_dt,'\\.',tile,'.*tif$')
+  patt = paste0(variable, "_", modis_product,'\\.A', df$modis_dt,'\\.',tile,'.*tif$')
   
   #get a list of files
   target_files = unlist(lapply(patt, function(x) list.files(path = base_folder, pattern = x, recursive = T, full.names = T)))

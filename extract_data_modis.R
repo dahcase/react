@@ -14,7 +14,7 @@ s1 = F #download data
 s2 = T #extract and format for QA
 s3 = T #save as a raster brick
 ######SETUP#######
-setup('ndvi')
+setup('lst', T)
 {
   #load directories
   work.dir = '/media/dan/react_data/post_proc/'
@@ -89,16 +89,16 @@ if(s3){
                                                                          end_date = end_date,
                                                                          md_start = md_start,
                                                                          md_end = md_end,
-                                                                         bydays = bydays,
+                                                                         bydays = temporal_resolution,
                                                                          base_folder = out_dir,
                                                                          modis_product = modis_base,
+                                                                         variable = variable,
                                                                          mask = T,
                                                                          project = st_crs(cities)$proj4string,
                                                                          cores = num_cores))
-  
   names(city_bricks) = unique(cities$Name)
   
   #save objects to rdata file
-  saveRDS(city_bricks, file.path(out_dir, 'city_bricks.rds'))
+  saveRDS(city_bricks, file.path(out_dir, paste0(variable, 'city_bricks.rds')))
 }
 step3end = Sys.time()

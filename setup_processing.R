@@ -1,11 +1,17 @@
-setup = function(product = 'lst'){
+setup = function(product = 'lst', alternative = F){
   if(product == 'lst'){
-    var = 'LST_Day'
+    if(alternative){
+      var = 'LST_Night'
+      val_layer = 'LST_Night_1km'
+      qa_layer = 'QC_Night'
+    } else{
+      var = 'LST_Day'
+      val_layer = 1
+      qa_layer = 2
+    }
+      
     modis_base = 'MOD11A2'
     scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
-    
-    val_layer = 1
-    qa_layer = 2
     
     #qa
     qc_table = build_MODIS_QC_table('LST')
@@ -26,6 +32,27 @@ setup = function(product = 'lst'){
     
     val_layer = "1 km 16 days NDVI"
     qa_layer = "1 km 16 days VI Quality"
+    
+    #qa
+    qc_table = build_MODIS_QC_table('NDVI')
+    qc_table <- subset(x=qc_table,QA_word1 == "VI Good Quality" | QA_word1 =="VI Produced,check QA")
+    #Select level 2:
+    qc_table <- subset(x=qc_table,QA_word2 %in% unique(qc_table$QA_word2)[1:8]) #"Highest quality, 1","Lower quality, 2","Decreasing quality, 3",...,"Decreasing quality, 8" 
+    
+    qa_codes = qc_table$Integer_Value
+    
+    md_start = '01.01'
+    md_end = '12.18'
+    temporal_resolution = 16
+  }
+  
+  if(product == 'ndvi_highres'){
+    var = 'NDVI'
+    modis_base = 'MOD13Q1'
+    scaling_factors <- c(0.0001,0) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
+    
+    val_layer = "250m 16 days NDVI"
+    qa_layer = "250m 16 days VI Quality"
     
     #qa
     qc_table = build_MODIS_QC_table('NDVI')
