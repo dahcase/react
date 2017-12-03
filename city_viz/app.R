@@ -22,9 +22,17 @@ cities = c("Kinshasa", "dar es salaam", "Bamako", "Kigali", "Kampala",
            "Lulumbashi", "Abidjan", "Ibadan", "Kisangani")
 products = data.table(modis_product = c('MOD13A2','MOD11A2','MOD11A2'), subdataset = c('NDVI', 'LST_Day', "LST_Night"))
 raster_metrics = c("coverage", "mean", "min", "max", "med", "lower", "upper", 
-                   "sd", "possible_cells")
+                   "sd")
 date_metrics = c("valid_cells", "mean", "median", "lower", "upper", "sd")
 
+#metric definitions
+date_met_def = c('Percent of cells not masked for QA', 'Mean of all valid cells',
+                 'Median of all valid cells', '2.5th percentile of all valid cells',
+                 '97.5th percentile of all valid cells', 'Standard Dev. of all valid cells')
+raster_met_def = c('Number of valid cells', 'Mean',
+                   'Minimum', 'Maximum',
+                   'Median', '2.5th %tile',
+                   '97.5th %tile', 'Standard deviation')
 
 #work_dir
 work.dir = '/media/dan/react_data/post_proc/'
@@ -62,10 +70,18 @@ ui <- fluidPage(
 
       
       # Show a plot of the generated distribution
-       mainPanel(tabsetPanel(type = "tabs",
+       mainPanel(
+         
+         #tabset
+         tabsetPanel(type = "tabs",
                    tabPanel("Time Series", plotOutput("timeseries"), value = 1),
-                   tabPanel("City", leafletOutput("leafmap"), value = 2), id = 'tabselected'
-       )), 
+                   tabPanel("City", leafletOutput("leafmap"), value = 2),
+                   tabPanel('Values', dataTableOutput('city_data'), value = 3),id = 'tabselected')
+         
+         #Subheading
+         
+                 
+                 ), 
       
       position = 'left'
    )
@@ -87,17 +103,14 @@ server <- function(input, output) {
   output$date_selection <- renderUI({ dateRangeInput('ts_date', 'Date', start = '2004-01-01', end = '2016-12-31',
                                                      min = '2004-01-01', max = '2016-12-31')})
   
+  output$city_data <- renderDataTable({
+    validate(need(input$dataload>0, message = 'Please load some data'))
+    ppp = dat()[[input$city]][[1]]
+    return(ppp)
+  })
+  
   #load the data
   dat <- reactive({
-    
-    #if clicked, run things, but not the first time
-    if(input$dataload == 0 ){
-      #make a minimum output
-      oot = lapply(cities, function(x) list(NA, list(1), 'No Data Loaded'))
-      names(oot) = cities
-      return(oot)
-      
-    }
     
     #only load data upon command
     isolate({
@@ -107,32 +120,59 @@ server <- function(input, output) {
       #return('loaded')
     })
     
-  })
+  }, label = 'data_load')
+  
+  ras <- reactive({
+
+    validate(need(input$dataload>0, message = 'Please load some data'), need(!is.null(input$ts_met), 'Please select the raster view'))
+
+    ras = dat()[[input$city]][[2]][[input$ras_met]]
+    return(ras)
+  }, label = 'raster_load')
   
   #load the proper city brick 
    output$leafmap <- renderLeaflet({
     
     validate(need(input$dataload>0, message = 'Please load some data'))
     
-    #trigger reactivity
-    the_city = input$city
-    the_metric = input$ras_met
-    ras = dat()[[the_city]][[2]][[the_metric]]
-    
-    #determine color
-    #colors
-    rasvals = values(ras)
-    rasvals[rasvals == -Inf] <- NA
-    rasvals[rasvals == Inf] <- NA
-    pal <- colorNumeric(c("#0C2C84", "#41B6C4", "#FFFFCC"), rasvals,
-                        na.color = "transparent")
-    
-    
-    leaflet() %>% addTiles() %>%
-      addRasterImage(ras, colors = pal, opacity = 0.8) %>%
+     #start up parameter
+     isolate({
+       ext <- extent(ras())
+       rasvals = values(ras())
+       rasvals[rasvals == -Inf] <- NA
+       rasvals[rasvals == Inf] <- NA
+       pal <- colorNumeric(c("#0C2C84", "#41B6C4", "#FFFFCC"), rasvals,
+                           na.color = "transparent")
+       
+       
+    })
+     
+     
+    leaflet() %>% addTiles() %>% fitBounds(ext@xmin, ext@ymin, ext@xmax, ext@ymax) %>% 
+      addRasterImage(ras(), colors = pal, opacity = 0.8) %>%
       addLegend(pal = pal, values = rasvals,
-                title = paste0(the_metric, ', ', the_city))
+                title = paste0(raster_met_def[which(raster_metrics == input$ras_met)]))
    })
+   
+   
+   #redraw when there is a new metric
+   observe({
+    
+     validate(need(input$dataload>0, message = 'Please load some data'))
+      
+     rasvals = values(ras())
+     rasvals[rasvals == -Inf] <- NA
+     rasvals[rasvals == Inf] <- NA
+     pal <- colorNumeric(c("#0C2C84", "#41B6C4", "#FFFFCC"), rasvals,
+                         na.color = "transparent")
+     
+     prox <- leafletProxy('leafmap') %>% clearControls %>% 
+       addRasterImage(ras(), colors = pal, opacity = 0.8) %>%
+       addLegend(pal = pal, values = rasvals,
+                 title = paste0(raster_met_def[which(raster_metrics == input$ras_met)]))
+     
+   })
+   
    
    output$timeseries <-renderPlot({
      validate(need(input$dataload>0, message = 'Please load some data'))
@@ -148,7 +188,12 @@ server <- function(input, output) {
      gra[, output := as.numeric(get(input$ts_met))]
      
      g = ggplot(gra, aes(x = date, y = output)) + geom_line() + theme_bw() + 
-       ggtitle(paste(input$ts_met, 'for',input$subproduct, 'in', input$city))
+       ggtitle(date_met_def[which(date_metrics == input$ts_met)]) 
+     
+     if(input$ts_met == 'valid_cells'){
+       g = g + ylim(0,1)
+     }
+     
      plot(g)
    })
 }
