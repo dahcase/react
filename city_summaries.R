@@ -4,7 +4,7 @@ library('sf'); library('httr'); library('rvest'); library('raster'); library('da
 code.dir = '/home/dan/Documents/code/react/'
 for(ddd in c('MODIS_and_raster_processing_functions.R','download_modis_fun.R', 'extract_tiles_fun.R', 'setup_processing.R', 'city_functions.R')) source(paste0(code.dir,ddd))
 
-setup('lst', T)
+setup('ndvi', F)
 
 work.dir = '/media/dan/react_data/post_proc/'
 out_dir = file.path(work.dir, paste0('output_', modis_base))

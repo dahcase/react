@@ -112,6 +112,8 @@ server <- function(input, output) {
   #load the data
   dat <- reactive({
     
+    input$dataload
+    
     #only load data upon command
     isolate({
       da <- readRDS(paste0(work.dir,'output_', input$modis_product,'/',input$subproduct,'city_brick_summaries.rds'))
@@ -200,4 +202,3 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
