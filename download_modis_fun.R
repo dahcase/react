@@ -33,7 +33,7 @@ get_modis_tiles_list <-function(modis_grid,reg_outline){
 #' start_date A character string, in the form of YYYY.MM.DD
 #' end_date Character string. from of YYYY.MM.DD
 #' output_path file.path. 
-get_modis_links = function(modis_product, tile_list, start_date, end_date, extensions = c('.hdf','.xml'), read_local = F, verbose = F){
+get_modis_links = function(modis_product, tile_list, start_date, end_date, extensions = c('.hdf','.xml'), read_local = F, verbose = F, terra = T){
   
   #determine the time frame
   st <- as.Date(start_date,format="%Y.%m.%d") #start date
@@ -42,7 +42,12 @@ get_modis_links = function(modis_product, tile_list, start_date, end_date, exten
   dates_queried <- format(ll,"%Y.%m.%d") #formatting queried dates
   
   #extract the list of folders
-  modis_web = paste("https://e4ftl01.cr.usgs.gov/MOLT/",modis_product,"/",sep="") #URL is a constant...
+  if(terra){
+    modis_web = paste("https://e4ftl01.cr.usgs.gov/MOLT/",modis_product,"/",sep="") #URL is a constant...
+  } else{
+    modis_web = paste("https://e4ftl01.cr.usgs.gov/MOLA/",modis_product,"/",sep="") #URL is a constant...
+  }
+  
   fffs = extractFolders(modis_web)
   
   #keep those within the desired range
