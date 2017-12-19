@@ -2,7 +2,7 @@
 # A refactor of Benoit's script
 
 #load libraries and functions
-library('sf'); library('httr'); library('rvest'); library('raster'); library('data.table')
+library('sf'); library('httr'); library('rvest'); library('raster'); library('data.table'); library('pryr')
 
 #load functions
 code.dir = '/home/dan/Documents/code/react/'
@@ -14,12 +14,14 @@ s1 = F #download data
 s2 = F #extract and format for QA
 s3 = T #save as a raster brick
 ######SETUP#######
-ppp = data.frame(var = c('lst','lst','ndvi'), alt = c(T, F, F))
-ppp = ppp[1:2,]
+ppp = data.frame(modis_base = c('MOD11A2','MOD11A2', 'MYD11A2','MYD11A2', 'MOD13A2'),var = c('lst','lst','lst','lst','ndvi'), alt = c(T, F,T,F,F))
+ppp = ppp[2:4,]
 for(q in 1:nrow(ppp)){
   print(ppp[q,])
   setup(ppp$var[q], ppp$alt[q])
   {
+    modis_base = ppp[q,'modis_base']
+    
     #load directories
     work.dir = '/media/dan/react_data/post_proc/'
     
@@ -29,7 +31,7 @@ for(q in 1:nrow(ppp)){
     start_date <- "2004.01.01"
     end_date <- "2016.12.31"
     
-    num_cores = 2
+    num_cores = 5
     
     #geometries
     infile_modis_grid <- "/home/dan/Documents/react_data/modis_grid/modis_sinusoidal_grid_world.shp" #param11
@@ -71,11 +73,20 @@ for(q in 1:nrow(ppp)){
                                                        val_layer_id = val_layer,
                                                        qa_layer_id = qa_layer,
                                                        qa_mask = qa_codes,
-                                                       inverse = T, 
+                                                       inverse = T,
                                                        scaling_factors = scaling_factors,
                                                        output_projection = NULL,
                                                        output_filepath = params[x,output_file],
                                                        return_raster = F), mc.cores = num_cores)
+    # dat = lapply(1, function(x) process_image(hdf_file = params[x,hdf_file],
+    #                                                                    val_layer_id = val_layer,
+    #                                                                    qa_layer_id = qa_layer,
+    #                                                                    qa_mask = qa_codes,
+    #                                                                    inverse = T,
+    #                                                                    scaling_factors = scaling_factors,
+    #                                                                    output_projection = NULL,
+    #                                                                    output_filepath = params[x,output_file],
+    #                                                                    return_raster = F))
   }
   step2end = Sys.time()
   #make bricks per city
@@ -90,10 +101,17 @@ for(q in 1:nrow(ppp)){
     modis_grid = sf::st_read(infile_modis_grid)
   
     #for each city, build a raster brick
-    city_bricks = lapply(unique(cities$Name), function(x) build_city_brick(modis_grid = modis_grid,
+    #but do it by year
+    sy = as.numeric(substr(start_date, 1, 4))
+    ey = as.numeric(substr(end_date, 1, 4))
+    for(yyy in sy:ey){
+      sd = paste0(yyy,'.01.01')
+      ed = paste0(yyy,'.12.31')
+      
+      city_bricks <- lapply(unique(cities$Name), function(x) build_city_brick(modis_grid = modis_grid,
                                                                            city_shape = cities[cities$Name%in%x,],
-                                                                           start_date = start_date,
-                                                                           end_date = end_date,
+                                                                           start_date = sd,
+                                                                           end_date = ed,
                                                                            md_start = md_start,
                                                                            md_end = md_end,
                                                                            bydays = temporal_resolution,
@@ -103,11 +121,12 @@ for(q in 1:nrow(ppp)){
                                                                            mask = F,
                                                                            project = st_crs(cities)$proj4string,
                                                                            cores = num_cores))
-    names(city_bricks) = unique(cities$Name)
-    
-    #save objects to rdata file
-    saveRDS(city_bricks, file.path(out_dir, paste0(variable,'_',modis_base,'_roi.rds')))
-    gc()
+      names(city_bricks) = unique(cities$Name)
+      
+      #save objects to rdata file
+      saveRDS(city_bricks, file.path(out_dir, paste0(variable,'_',modis_base,'_',yyy,'_roi.rds')))
+      rm(city_bricks)
+    }
   }
   step3end = Sys.time()
 }

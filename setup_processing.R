@@ -10,7 +10,6 @@ setup = function(product = 'lst', alternative = F){
       qa_layer = 2
     }
       
-    modis_base = 'MOD11A2'
     scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
     
     #qa
@@ -27,7 +26,6 @@ setup = function(product = 'lst', alternative = F){
   
   if(product == 'ndvi'){
     var = 'NDVI'
-    modis_base = 'MOD13A2'
     scaling_factors <- c(0.0001,0) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
     
     val_layer = "1 km 16 days NDVI"
@@ -48,7 +46,6 @@ setup = function(product = 'lst', alternative = F){
   
   if(product == 'ndvi_highres'){
     var = 'NDVI'
-    modis_base = 'MOD13Q1'
     scaling_factors <- c(0.0001,0) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
     
     val_layer = "250m 16 days NDVI"
@@ -72,7 +69,6 @@ setup = function(product = 'lst', alternative = F){
   assign('temporal_resolution', temporal_resolution, envir = .GlobalEnv)
   assign('qa_codes', qa_codes, envir = .GlobalEnv)
   assign('variable', var, envir = .GlobalEnv)
-  assign('modis_base', modis_base, envir = .GlobalEnv)
   assign('scaling_factors', scaling_factors, envir = .GlobalEnv)
   assign('val_layer', val_layer, envir = .GlobalEnv)
   assign('qa_layer', qa_layer, envir = .GlobalEnv)
