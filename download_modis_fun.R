@@ -103,7 +103,7 @@ extractFiles = function(url, tiles, extension = c('.hdf','.xml'), read_local = F
   #load html file
   if(read_local){
     tmp = tempfile()
-    download.file(url, destfile = tmp, quiet = T)
+    tryCatch(download.file(url, destfile = tmp, quiet = T),error = function(e){Sys.sleep(5); download.file(url, destfile = tmp, quiet = T)})
     link = read_html(tmp)
   } else{
     link = read_html(url)

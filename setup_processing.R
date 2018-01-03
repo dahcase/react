@@ -10,7 +10,7 @@ setup = function(product = 'lst', alternative = F){
       qa_layer = 2
     }
       
-    scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b), if NULL, no scaling done, setting for LST 
+    scaling_factors <- c(1,-273.15) #set up as slope (a) and intercept (b)
     
     #qa
     qc_table = build_MODIS_QC_table('LST')
