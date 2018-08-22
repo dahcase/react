@@ -1,0 +1,42 @@
+---
+title: "Explore the bfast package"
+output: html_notebook
+---
+
+Useful links:
+http://www.loicdutrieux.net/bfastSpatial/
+https://philippgaertner.github.io/2018/04/bfast-preparation/
+https://cran.r-project.org/web/packages/bfast/index.html
+
+
+```{r, include=F, message=FALSE}
+library('bfast')
+library('data.table')
+library(bfastSpatial)
+library('ggplot2')
+```
+
+```{r, messing-with-bfast-spatial}
+
+data(tura)
+
+dates = substr(names(tura),10, 16)
+dates = as.Date(dates, format = "%Y%j")
+
+px = data.table(val = as.vector(tura[50]), date = dates)
+g = ggplot(px[!is.na(val),], aes(x = date, y = val)) + geom_line() + geom_point() + theme_bw()
+plot(g)
+
+system.time(bfm <- bfmPixel(tura, start=c(2009, 1), cell = 50))
+
+```
+
+```{r, inparallelelelelel}
+
+t2 <- system.time(
+    bfm <- bfmSpatial(tura, start=c(2009, 1), order=1, mc.cores=5)
+    )
+
+
+```
+
